@@ -207,8 +207,9 @@ a{color:#1F5FD6}a:hover{color:#174AA8}
         <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Work email<input name="email" type="email" required autocomplete="email" style="font: inherit; font-weight: 400; padding: 12px; border: 1.5px solid #CBD5E1; border-radius: 8px"></label>
         <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Company<input name="company" type="text" autocomplete="organization" style="font: inherit; font-weight: 400; padding: 12px; border: 1.5px solid #CBD5E1; border-radius: 8px"></label>
         <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Number of mailboxes<input name="mailboxes" type="number" min="1" style="font: inherit; font-weight: 400; padding: 12px; border: 1.5px solid #CBD5E1; border-radius: 8px"></label>
-        <button class="btn" type="submit" style="font: inherit; font-weight: 600; font-size: 16px; background: #1F5FD6; color: #ffffff; border: 0; border-radius: 8px; padding: 14px; cursor: pointer">Book my free check</button>
-        <p style="margin: 0; font-size: 13px; color: #4A5568">This opens your email app with your details filled in. Just press send.</p>
+        <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="display: none">
+        <button id="bookBtn" class="btn" type="submit" style="font: inherit; font-weight: 600; font-size: 16px; background: #1F5FD6; color: #ffffff; border: 0; border-radius: 8px; padding: 14px; cursor: pointer">Book my free check</button>
+        <p id="bookMsg" role="status" style="margin: 0; font-size: 14px; color: #4A5568">We'll reply within one business day to set a time.</p>
       </form>
     </div>
   </section>
@@ -224,15 +225,32 @@ a{color:#1F5FD6}a:hover{color:#174AA8}
 <script>
 document.getElementById('bookForm').addEventListener('submit', function (e) {
   e.preventDefault();
-  var f = e.target;
-  var body = 'Hi Iron Inbox,\n\nI\'d like to book a free 15-minute email risk check.\n\n' +
-    'Name: ' + f.name.value + '\n' +
-    'Work email: ' + f.email.value + '\n' +
-    'Company: ' + f.company.value + '\n' +
-    'Number of mailboxes: ' + f.mailboxes.value + '\n';
-  window.location.href = 'mailto:hello@getironinbox.com?subject=' +
-    encodeURIComponent('Free email risk check — ' + (f.company.value || f.name.value)) +
-    '&body=' + encodeURIComponent(body);
+  var f = e.target, btn = document.getElementById('bookBtn'), msg = document.getElementById('bookMsg');
+  if (f._honey.value) return;
+  btn.disabled = true; btn.textContent = 'Sending…';
+  fetch('https://formsubmit.co/ajax/hello@getironinbox.com', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      _subject: 'Free email risk check — ' + (f.company.value || f.name.value),
+      _template: 'table',
+      _replyto: f.email.value,
+      Name: f.name.value,
+      'Work email': f.email.value,
+      Company: f.company.value,
+      'Number of mailboxes': f.mailboxes.value
+    })
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (String(d.success) !== 'true') throw new Error(d.message || 'failed');
+    f.reset();
+    btn.textContent = 'Request sent';
+    msg.style.color = '#1E5B2A';
+    msg.textContent = 'Thanks! We\'ll email you within one business day to set a time.';
+  }).catch(function () {
+    btn.disabled = false; btn.textContent = 'Book my free check';
+    msg.style.color = '#9B1C1C';
+    msg.innerHTML = 'Sorry, that didn\'t go through. Please call (914) 340-3660 or email <a href="mailto:hello@getironinbox.com">hello@getironinbox.com</a>.';
+  });
 });
 </script>
 </body>
